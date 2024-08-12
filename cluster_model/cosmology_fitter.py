@@ -15,13 +15,13 @@ class cosmology_fitter:
     Class that has all the functionality to fit cosmological parameters using MCMC
     """
 
-    def __init__(self, file_loc, fit_model, counts_file,bary_hmf_file=None):
+    def __init__(self, file_loc, counts_file, bary_hmf_file=None):
         """
         Initialize the data and redshift bins to use for MCMC
         """
 
         self.cluster_file_loc = file_loc
-        self.FLAMINGO_info = masm(file_loc,hydro_path_for_hmf_ratio=bary_hmf_file)
+        self.FLAMINGO_info = masm(file_loc, hydro_path_for_hmf_ratio=bary_hmf_file)
         cluster_model = ccm(self.FLAMINGO_info, 1e-4, true_halo_mass_function=True)
         self.base_cosmology = cluster_model.get_cosmology()
         self.count_data = np.load(counts_file)
@@ -45,7 +45,7 @@ class cosmology_fitter:
         log_normal_scatter,
         mira_titan,
         fit_model=None,
-        solid_angle=4*np.pi,
+        solid_angle=4 * np.pi,
     ):
         """
         Returns the log Poissonion likelihood using the cosmological model
@@ -80,11 +80,12 @@ class cosmology_fitter:
             if model_counts == 0 or self.count_data[index] == 0:
                 continue
             log_like += (
-                self.count_data[index] * np.log(model_counts) * (solid_angle / (4 * np.pi))
+                self.count_data[index]
+                * np.log(model_counts)
+                * (solid_angle / (4 * np.pi))
                 - model_counts
                 - gammaln(self.count_data[index] * (solid_angle / (4 * np.pi)))
             )
-
 
         if np.isnan(log_like):
             return -np.inf
@@ -98,7 +99,7 @@ class cosmology_fitter:
         nSteps=2000,
         nDiscard=500,
         nwalkers=100,
-        args=[1e-4, False, False, False, None,1.584],
+        args=[1e-4, False, False, False, None, 1.584],
         n_threads=10,
         outputname=None,
         restart=False,
@@ -158,9 +159,9 @@ class cosmology_fitter:
             if params[i] < priors[i][0] or params[i] > priors[i][1]:
                 return -np.inf
         return (
-            -((-0.19 - params[2]) ** 2) / ((0.02) ** 2)
-            - ((1.79 - params[3]) ** 2) / ((0.08) ** 2)
-            - ((0.075 - params[4]) ** 2) / ((0.01) ** 2)
+            -((-0.09839464277 - params[2]) ** 2) / ((0.02) ** 2)
+            - ((1.65965115 - params[3]) ** 2) / ((0.08) ** 2)
+            - ((0.08190972605801156 - params[4]) ** 2) / ((0.01) ** 2)
         )
 
     def ln_likelihood_paralel_full_model(self, params, SZ_cut, solid_angle):
@@ -184,22 +185,19 @@ class cosmology_fitter:
             cosmo_info=cosmology_sample,
             power_law_meds=True,
             log_normal_scatter=True,
-            mira_titan=True,
-            fit_model=None,
+            mira_titan=False,
+            fit_model="Bocquet500cDMOnly",
             log_normal_lognsigy=params[4],
-            power_law_args=(10 ** params[2], params[3], 0.66),
+            power_law_args=(10 ** params[2], params[3], 0.88858989),
         )
 
         log_like = 0
 
         for index in range(len(self.z_edges) - 1):
-            model_counts = (
-                cluster_model.number_counts_sz(
-                    self.z_edges[index],
-                    self.z_edges[index + 1],
-                )[0]
-                * (solid_angle / (4 * np.pi))
-            )
+            model_counts = cluster_model.number_counts_sz(
+                self.z_edges[index],
+                self.z_edges[index + 1],
+            )[0] * (solid_angle / (4 * np.pi))
             if model_counts == 0 or self.count_data[index] == 0:
                 continue
             log_like += (
@@ -229,8 +227,6 @@ class cosmology_fitter:
     ):
         # Set up the data
         self.z_edges = z_edges
-        if not self.use_counts_file:
-            self.set_dataset(args[0], z_edges)
         # Set up the MCMC sampler
         ndim = len(initial_guess)  # number of parameters being fit
         # start each walker in a small ball around the initial guess
