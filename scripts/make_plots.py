@@ -20,12 +20,12 @@ pre_folder = "/snap8/scratch/dp004/dc-mcgi1/roi/minimal/Runs/L1000N1800/"
 in_list_catalogues = np.array(
     [
         pre_folder + "HYDRO_FIDUCIAL/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_WEAK_AGN/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_STRONG_AGN/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_STRONGER_AGN/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_STRONGEST_AGN/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_JETS_published/SOAP_uncompressed/HBTplus/",
-     	pre_folder + "HYDRO_STRONG_JETS_published/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_WEAK_AGN/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_STRONG_AGN/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_STRONGER_AGN/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_STRONGEST_AGN/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_JETS_published/SOAP_uncompressed/HBTplus/",
+        pre_folder + "HYDRO_STRONG_JETS_published/SOAP_uncompressed/HBTplus/",
     ]
 )
 

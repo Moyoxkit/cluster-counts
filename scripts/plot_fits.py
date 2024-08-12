@@ -5,6 +5,7 @@ import emcee
 from matplotlib.pyplot import style
 from matplotlib.lines import Line2D
 
+
 def get_percent_away_from_truth(truth, samples, ln_prob):
     truth = np.array(truth)
 
@@ -35,7 +36,7 @@ def get_percent_away_from_truth(truth, samples, ln_prob):
 
 
 survey = "SIO"
-colors = ["black","#117733","#7EFF4B","#105ba4"]
+colors = ["black", "#117733", "#7EFF4B", "#105ba4"]
 
 style.use("../pipeline-configs/colibre/mnras.mplstyle")
 cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
@@ -68,7 +69,13 @@ figure = plt.figure(figsize=(7, 7))
 figure.set_tight_layout(True)
 corner.corner(
     chain_fid,
-    labels=[r"$\Omega_{\rm m}$", r"$\sigma_8$", r"log$_{10}~Y^*$", r"$\alpha$", r"log$_{10} \sigma$"],
+    labels=[
+        r"$\Omega_{\rm m}$",
+        r"$\sigma_8$",
+        r"log$_{10}~Y^*$",
+        r"$\alpha$",
+        r"log$_{10} \sigma$",
+    ],
     bins=15,
     hist_bin_factor=2,
     levels=(0.68, 0.95),
@@ -85,7 +92,13 @@ corner.corner(
 )
 corner.corner(
     chain_bar,
-    labels=[r"$\Omega_{\rm m}$", r"$\sigma_8$", r"log$_{10}~Y^*$", r"$\alpha$", r"log$_{10} \sigma$"],
+    labels=[
+        r"$\Omega_{\rm m}$",
+        r"$\sigma_8$",
+        r"log$_{10}~Y^*$",
+        r"$\alpha$",
+        r"log$_{10} \sigma$",
+    ],
     bins=15,
     hist_bin_factor=2,
     levels=(0.68, 0.95),
@@ -102,7 +115,13 @@ corner.corner(
 )
 corner.corner(
     chain_jet,
-    labels=[r"$\Omega_{\rm m}$", r"$\sigma_8$", r"log$_{10}~Y^*$", r"$\alpha$", r"log$_{10} \sigma$"],
+    labels=[
+        r"$\Omega_{\rm m}$",
+        r"$\sigma_8$",
+        r"log$_{10}~Y^*$",
+        r"$\alpha$",
+        r"log$_{10} \sigma$",
+    ],
     bins=15,
     hist_bin_factor=2,
     levels=(0.68, 0.95),
@@ -119,7 +138,13 @@ corner.corner(
 )
 corner.corner(
     chain_str,
-    labels=[r"$\Omega_{\rm m}$", r"$\sigma_8$", r"log$_{10}~Y^*$", r"$\alpha$", r"log$_{10} \sigma$"],
+    labels=[
+        r"$\Omega_{\rm m}$",
+        r"$\sigma_8$",
+        r"log$_{10}~Y^*$",
+        r"$\alpha$",
+        r"log$_{10} \sigma$",
+    ],
     bins=15,
     hist_bin_factor=2,
     levels=(0.68, 0.95),
@@ -156,10 +181,10 @@ for i in range(4):
 
 figure.legend(
     custom_legend,
-    ["Fiducial","Baryonic HMF","Jets",r"fgas-8$\sigma$"],
+    ["Fiducial", "Baryonic HMF", "Jets", r"fgas-8$\sigma$"],
     loc="center",
     bbox_to_anchor=(0.73, 0.75),
     fontsize=12,
 )
 
-plt.savefig("figures/cornerplot"+ survey +".pdf")
+plt.savefig("figures/cornerplot" + survey + ".pdf")
