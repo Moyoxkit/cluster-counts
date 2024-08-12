@@ -12,60 +12,14 @@ from scipy.interpolate import (
 )
 from scipy.special import erf
 from hmf import MassFunction
-from hmf.mass_function import FittingFunction
-from hmf.mass_function.fitting_functions import SimDetails
 import pandas as pd
 import unyt
 import pickle
 from hmf import MassFunction
-from hmf.halos import mass_definitions as md
-import pyccl as ccl
-from pyccl.halos.massdef import MassDef
-from pyccl.halos import Concentration
 import MiraTitanHMFemulator
-
-
-def mass_translator(mass_in, mass_out, concentration):
-    """Translate between mass definitions, assuming an NFW profile.
-
-    Returns a function that can be used to translate between halo
-    masses according to two different definitions.
-
-    Args:
-        mass_in (:class:`MassDef` or :obj:`str`): mass definition of the
-            input mass.
-        mass_out (:class:`MassDef` or :obj:`str`): mass definition of the
-            output mass.
-        concentration (:class:`~pyccl.halos.halo_model_base.Concentration` or :obj:`str`):
-            concentration-mass relation to use for the mass conversion. It must
-            be calibrated for masses using the ``mass_in`` definition.
-
-    Returns:
-        Function that ranslates between two masses. The returned function
-        ``f`` can be called as: ``f(cosmo, M, a)``, where
-        ``cosmo`` is a :class:`~pyccl.cosmology.Cosmology` object, ``M``
-        is a mass (or array of masses), and ``a`` is a scale factor.
-
-    """
-
-    def translate(cosmo, M, a):
-        if mass_in == mass_out:
-            return M
-
-        c_in = concentration._concentration(cosmo, M, a)
-        Om_in = cosmo.omega_x(a, mass_in.rho_type)
-        D_in = mass_in.get_Delta(cosmo, a) * Om_in
-        R_in = mass_in.get_radius(cosmo, M, a)
-
-        Om_out = cosmo.omega_x(a, mass_out.rho_type)
-        D_out = mass_out.get_Delta(cosmo, a) * Om_out
-        c_out = ccl.halos.convert_concentration(
-            cosmo, c_old=c_in, Delta_old=D_in, Delta_new=D_out
-        )
-        R_out = R_in * c_out / c_in
-        return mass_out.get_mass(cosmo, R_out, a)
-
-    return translate
+import commah
+from colossus.cosmology import cosmology as colo_cosmo
+from colossus.halo import concentration as colo_conc
 
 
 class cluster_cosmology_model:
@@ -84,7 +38,7 @@ class cluster_cosmology_model:
         true_halo_mass_function=False,
         mira_titan=False,
         log_normal_lognsigy=0.075,
-        power_law_args=(10 ** -0.19, 1.79, 0.66),
+        power_law_args=(0.79169079, 1.67645383, 0.66),
         use_hydro_hmf_ratio=False,
     ):
         """
@@ -99,11 +53,17 @@ class cluster_cosmology_model:
         else:
             self.set_cosmology(cosmo_info)
 
-        self.FLAMINGO_functions.init_other_interpolators(self.astropy_cosmology)
+        power_law_args = [
+            power_law_args[0],
+            power_law_args[1],
+            power_law_args[2],
+            log_normal_lognsigy,
+        ]
+        self.FLAMINGO_functions.init_other_interpolators(
+            self.astropy_cosmology, power_law_args
+        )
 
         self.mira_titan_hmf = MiraTitanHMFemulator.Emulator()
-
-        cmr = ccl.halos.ConcentrationDiemer15()
 
         if mira_titan == False and true_halo_mass_function == False:
             self.hmf = MassFunction(
@@ -129,6 +89,41 @@ class cluster_cosmology_model:
             power_law_args=power_law_args,
             use_hydro_hmf_ratio=use_hydro_hmf_ratio,
         )
+
+    def mass_translator(self, M500s, z, cosmology):
+        """
+        Function that converts and array of M500s to an array of M200s at
+        a given cosmology and z.
+        """
+
+        def find_R500(R_200, c):
+            conc_Y_c = np.log(1 + c) - c / (1 + c)
+            delta_c = 200 * c**3 / (3 * conc_Y_c)
+            R_s = R_200 / c
+            rmax = np.logspace(-6, 1, 100)
+            den_enclosed_in_crits_d = (3 * delta_c * (R_s / rmax) ** 3) * (
+                np.log(((R_s + rmax) / R_s)) - (rmax / (R_s + rmax))
+            )
+            den_to_r = interp1d(den_enclosed_in_crits_d, rmax)
+            return den_to_r(500)
+
+        M200s = np.logspace(12, 16.5, 45)
+
+        concs = colo_conc.modelDiemer19(
+            M200s / (self.cosmological_parameters["H_0"] / 100), z, statistic="mean"
+        )
+        concs = concs[0]
+        crit_den = (
+            self.astropy_cosmology.critical_density(z).to(u.Msun / (u.Mpc**3)).value
+        )
+        R_200s = (M200s / (4 * np.pi * 200 * crit_den / 3)) ** (1 / 3)
+        int_M500s = np.zeros(len(R_200s))
+        for i in range(len(M200s)):
+            R_500 = find_R500(R_200s[i], concs[i])
+            int_M500s[i] = 4 * np.pi * 500 * crit_den * R_500**3 / 3
+
+        M500_to_M200 = interp1d(int_M500s, M200s)
+        return M500_to_M200(M500s)
 
     def set_cosmology(self, cosmological_parameters, mira_titan=False):
         """
@@ -158,14 +153,25 @@ class cluster_cosmology_model:
             "sigma_8": cosmological_parameters["sigma_8"],
         }
 
-        self.ccl_cosmology = ccl.Cosmology(
-            Omega_c=cosmological_parameters["Omega_m"]
-            - cosmological_parameters["Omega_b"],
-            Omega_b=cosmological_parameters["Omega_b"],
-            h=cosmological_parameters["H_0"] / 100,
-            sigma8=cosmological_parameters["sigma_8"],
-            n_s=cosmological_parameters["n_s"],
+        self.commah_cosmology = {
+            "omega_M_0": cosmological_parameters["Omega_m"],
+            "omega_b_0": cosmological_parameters["Omega_b"],
+            "omega_lambda_0": 1 - cosmological_parameters["Omega_m"],
+            "omega_n_0": cosmological_parameters["m_nu"] * (0.01 / 0.94),
+            "n": cosmological_parameters["n_s"],
+            "h": cosmological_parameters["H_0"] / 100,
+            "w_0": cosmological_parameters["w_0"],
+            "w_a": cosmological_parameters["w_a"],
+            "sigma_8": cosmological_parameters["sigma_8"],
+        }
+
+        bla = colo_cosmo.fromAstropy(
+            self.astropy_cosmology,
+            cosmological_parameters["sigma_8"],
+            cosmological_parameters["n_s"],
+            cosmo_name="colo_cosmo",
         )
+        colo_cosmo.setCurrent(bla)
 
         # Update the hmf cosmology if it has been already initialized
         if hasattr(self, "hmf") and mira_titan == False:
@@ -211,7 +217,7 @@ class cluster_cosmology_model:
                 * solid_angle
                 * u.sr
             )
-            .to(u.Mpc ** 3)
+            .to(u.Mpc**3)
             .value
         )
 
@@ -229,18 +235,6 @@ class cluster_cosmology_model:
             if z > 2.02:
                 return np.zeros(len(M500s))
 
-            # Delta=200 (critical).
-            hmd_200c = ccl.halos.MassDef(200, "critical")
-
-            # Delta=500 (matter).
-            hmd_500c = ccl.halos.MassDef(500, "critical")
-
-            cmr = ccl.halos.ConcentrationDiemer15()
-
-            self.mass_trans = mass_translator(
-                mass_in=hmd_500c, mass_out=hmd_200c, concentration=cmr
-            )
-
             masses_to_interpolate = np.logspace(13, 16, 1000) / little_h
             numden_to_interpolate = (
                 self.mira_titan_hmf.predict(
@@ -249,7 +243,7 @@ class cluster_cosmology_model:
                     masses_to_interpolate * little_h,
                     get_errors=False,
                 )[0][0]
-                * little_h ** 3
+                * little_h**3
                 * np.log(10)
             )
             dn_dlog10m_interpolator = interp1d(
@@ -259,86 +253,21 @@ class cluster_cosmology_model:
                 bounds_error=False,
             )
 
-            mass_limit_200 = self.mass_trans(self.ccl_cosmology, M500s, 1 / (1 + z))
-            for index, mass_limit_200_i in enumerate(mass_limit_200):
-                mass_limit_200[index] = np.mean(
-                    10 ** np.random.normal(np.log10(mass_limit_200_i), 0.16, 1000)
-                )
+            mass_limit_200 = self.mass_translator(M500s, z, self.commah_cosmology)
+
+            #            for index, mass_limit_200_i in enumerate(mass_limit_200):
+            #                mass_limit_200[index] = np.mean(
+            #                    10 ** np.random.normal(np.log10(mass_limit_200_i), 0.16, 1000)
+            #                )
 
             return dn_dlog10m_interpolator(mass_limit_200)
 
         else:
             self.hmf.update(z=z)
             dn_dlog10m_interpolator = interp1d(
-                self.hmf.m / little_h, self.hmf.dndlog10m * little_h ** 3
+                self.hmf.m / little_h, self.hmf.dndlog10m * little_h**3
             )
             return dn_dlog10m_interpolator(M500s)
-
-    def power_law_sz_scaling_relation(self, M500, z, Ystar, alpha, beta):
-        """
-        Returns the value of the expected median Compton-Y given the
-        parameters of a power law. Cosmology and z dependence taken
-        from Planck
-
-        Parameters:
-
-        M500 : halo mass to evalute the relation at in Msun
-        z    : redshift
-        Ystar: normalisation of the power law
-        alpha: slope of the power law
-        beta : slope of the cosmology dependence
-        """
-
-        return (
-            (self.astropy_cosmology.H(z) / self.astropy_cosmology.H0) ** (beta)
-            * (self.astropy_cosmology.H(z) / (70 * u.km / (u.s * u.Mpc))) ** (alpha - 2)
-            * (0.688 * M500 / 6e14) ** alpha
-            * 1e-4
-        )
-
-    def halo_frac_sz_lognormal(
-        self, lognsigy, M500, z, Ystar, alpha, beta, y_cut, FLAMINGO=False
-    ):
-        """
-        Returns the fraction of halos in a mass bin defined by M500 that are
-        part of a sample with cy cut y_cut assuming a log-normal distribution
-
-        Parameters:
-
-        M500     : halo mass to evaluate the relation in Msun
-        z        : redshift
-        Ystar    : normalisation of the power law (Used when FLAMINGO=False)
-        alpha    : slope of mass-SZ relation (Used when FLAMINGO=False)
-        beta     : slope of the redshift dependence (Used when FLAMINGO=False)
-        y_cut    : the Compton Y cut that defines the sample
-        FLAMINGO : use the FLAMINGO medians instead of the power law model
-        """
-        if FLAMINGO:
-            return 0.5 * (
-                1
-                - erf(
-                    (
-                        np.log10(y_cut)
-                        - np.log10(self.FLAMINGO_functions.get_median_flamingo(M500, z))
-                    )
-                    / (2 ** (0.5) * lognsigy)
-                )
-            )
-        else:
-            return 0.5 * (
-                1
-                - erf(
-                    (
-                        np.log10(y_cut)
-                        - np.log10(
-                            self.power_law_sz_scaling_relation(
-                                M500, z, Ystar, alpha, beta
-                            )
-                        )
-                    )
-                    / (2 ** (0.5) * lognsigy)
-                )
-            )
 
     def init_number_counts_sz(
         self,
@@ -348,7 +277,7 @@ class cluster_cosmology_model:
         true_halo_mass_function=False,
         mira_titan=False,
         log_normal_lognsigy=0.075,
-        power_law_args=(10 ** -0.19, 1.79, 0.66),
+        power_law_args=(0.79169079, 1.67645383, 0.66),
         use_hydro_hmf_ratio=False,
     ):
         """
@@ -367,7 +296,6 @@ class cluster_cosmology_model:
         log_normal_scatter: Boolean, use log normal scatter?
         true_halo_mass_function: Boolean, use the HMF from FLAMINGO?
         log_normal_lognsigy: log normal scatter in dex. Only used when log_normal_scatter=True
-        power_law_args: tuple of length 3 containing power law parameters. Only used when power_law_meds=True
         use_hydro_hmf_ratio: Apply the ratio of DMO to hydro to alter the HMF
         """
 
@@ -394,7 +322,9 @@ class cluster_cosmology_model:
                     mira_titan=mira_titan,
                 )
             if use_hydro_hmf_ratio:
-                number_densities = self.FLAMINGO_functions.hmf_ratios[red_ind,:] * number_densities
+                number_densities = (
+                    self.FLAMINGO_functions.hmf_ratios[red_ind, :] * number_densities
+                )
 
             volume = self.differential_volume(
                 self.FLAMINGO_functions.all_redshifts[red_ind]

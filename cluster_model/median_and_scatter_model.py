@@ -27,7 +27,6 @@ class median_and_scatter_model:
         self,
         dictionary_path,
         DMO_HMF_dictionary_path=None,
-        PLLN_params=[10 ** -0.19, 1.79, 0.66, 0.075],
         hydro_path_for_hmf_ratio=None,
     ):
         """
@@ -44,12 +43,12 @@ class median_and_scatter_model:
             self.make_flamingo_halo_mass_function(DMO_HMF_dictionary_path)
         if hydro_path_for_hmf_ratio != None:
             self.make_flamingo_hmf_rat(hydro_path_for_hmf_ratio)
+
+    def init_other_interpolators(self, astropy_cosmology, PLLN_params):
         self.Ystar = PLLN_params[0]
         self.alpha = PLLN_params[1]
         self.beta = PLLN_params[2]
         self.lognsigy = PLLN_params[3]
-
-    def init_other_interpolators(self, astropy_cosmology):
         self.astropy_cosmology = astropy_cosmology
         self.scatter_maker_flamingo_LN(self.dictionary_path)
         self.scatter_maker_flamingo_PL(self.dictionary_path)
@@ -220,10 +219,10 @@ class median_and_scatter_model:
         beta : slope of the cosmology dependence
         """
 
-        return (
+        return Ystar * (
             (self.astropy_cosmology.H(z) / self.astropy_cosmology.H0) ** (beta)
             * (self.astropy_cosmology.H(z) / (70 * u.km / (u.s * u.Mpc))) ** (alpha - 2)
-            * (0.688 * M500 / 6e14) ** alpha
+            * (0.743 * M500 / 6e14) ** alpha
             * 1e-4
         )
 
@@ -296,17 +295,17 @@ class median_and_scatter_model:
             # thus creating a 2D list of interpolators for each z and mass
             temp_list = []
             for mass_index in range(values_to_interpolate.shape[1]):
-                values_to_interpolate[
-                    redshift_index, mass_index, :
-                ] = self.halo_frac_sz_lognormal(
-                    self.lognsigy,
-                    self.all_masses[mass_index],
-                    self.all_redshifts[redshift_index],
-                    self.Ystar,
-                    self.alpha,
-                    self.beta,
-                    self.c_ys,
-                    FLAMINGO=True,
+                values_to_interpolate[redshift_index, mass_index, :] = (
+                    self.halo_frac_sz_lognormal(
+                        self.lognsigy,
+                        self.all_masses[mass_index],
+                        self.all_redshifts[redshift_index],
+                        self.Ystar,
+                        self.alpha,
+                        self.beta,
+                        self.c_ys,
+                        FLAMINGO=True,
+                    )
                 )
                 temp_list.append(
                     interp1d(
@@ -348,17 +347,17 @@ class median_and_scatter_model:
             # thus creating a 2D list of interpolators for each z and mass
             temp_list = []
             for mass_index in range(values_to_interpolate.shape[1]):
-                values_to_interpolate[
-                    redshift_index, mass_index, :
-                ] = self.halo_frac_sz_lognormal(
-                    self.lognsigy,
-                    self.all_masses[mass_index],
-                    self.all_redshifts[redshift_index],
-                    self.Ystar,
-                    self.alpha,
-                    self.beta,
-                    self.c_ys,
-                    FLAMINGO=False,
+                values_to_interpolate[redshift_index, mass_index, :] = (
+                    self.halo_frac_sz_lognormal(
+                        self.lognsigy,
+                        self.all_masses[mass_index],
+                        self.all_redshifts[redshift_index],
+                        self.Ystar,
+                        self.alpha,
+                        self.beta,
+                        self.c_ys,
+                        FLAMINGO=False,
+                    )
                 )
                 temp_list.append(
                     interp1d(
@@ -439,13 +438,13 @@ class median_and_scatter_model:
 
         self.scatter_interpolators_PL = interpolator_array
 
-    def make_flamingo_hmf_rat(self,hydro_file_path):
+    def make_flamingo_hmf_rat(self, hydro_file_path):
         """
         Define an array that has for every mass and z the ratio with the DMO HMF
         default use the 1Gpc DMO HMF as the interest is the FB vars
         """
         with open(
-            "/cosma8/data/dp004/dc-kuge1/Selection_effects/non_log_normal/hist_and_med_L1000N1800DMO.pkl",
+            "/cosma8/data/dp004/dc-kuge1/make_hbt_pickles/hist_and_med_L1000N1800DMO.pkl",
             "rb",
         ) as f:
             dmo_dictionary_with_hmf = pickle.load(f)
