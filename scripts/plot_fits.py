@@ -42,6 +42,7 @@ style.use("../pipeline-configs/colibre/mnras.mplstyle")
 cycle = plt.rcParams["axes.prop_cycle"].by_key()["color"]
 fit_params = np.load("fit_params.npy")
 best_fit = [0.306, 0.807, np.log10(fit_params[0]), fit_params[1], 0.081]
+prior_errs = [0, 0, 0.02, 0.08, 0.01]
 print(best_fit)
 
 readr_fid = emcee.backends.HDFBackend("fit_outputs/" + survey + "_FID.hdf5")
@@ -161,11 +162,23 @@ corner.corner(
 )
 ndim = len(best_fit)
 axes = np.array(figure.axes).reshape((ndim, ndim))
+amps = [1, 1, 9000, 9000, 9000]
 
 # Loop over the diagonal
 for i in range(ndim):
     ax = axes[i, i]
     ax.axvline(best_fit[i], color="grey", ls="--", alpha=0.5)
+    if i > 1:
+        x_vals = np.linspace(
+            best_fit[i] - 5 * prior_errs[i], best_fit[i] + 5 * prior_errs[i], 100
+        )
+        ax.plot(
+            x_vals,
+            amps[i] * np.exp(-0.5 * (x_vals - best_fit[i]) ** 2 / (prior_errs[i] ** 2)),
+            color="grey",
+            ls="--",
+            alpha=0.5,
+        )
 #     ax.axvline(s0[i], color="orange")
 
 # Loop over the histograms
@@ -181,7 +194,7 @@ for i in range(4):
 
 figure.legend(
     custom_legend,
-    ["Fiducial", "Baryonic HMF", "Jets", r"fgas-8$\sigma$"],
+    ["Fiducial", "Baryonic HMF", "Jet", r"fgas-8$\sigma$"],
     loc="center",
     bbox_to_anchor=(0.73, 0.75),
     fontsize=12,

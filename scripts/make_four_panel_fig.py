@@ -213,6 +213,12 @@ baseline_data = [
 ]
 
 xmax = [0.9, 1.7, 2]
+legend_titles = [
+    "DMO HMF",
+    "Baryonic effect on HMF",
+    "Scaling relation fit",
+    "Scaling relation from simulation",
+]
 
 for i in range(4):
     all_axes[0][i].set_xticks([0.05, 0.25, 0.50, 0.75])
@@ -267,21 +273,21 @@ for cut_index in range(3):
             else:
                 ax.set_xlabel(r"$z$", fontsize=10)
             if cut_index == 2:
-                ax.legend(fontsize=8, loc=2)
+                ax.legend(fontsize=8, loc=2, title=legend_titles[panel_index])
             if model_index == 1:
                 ax.fill_between(
                     z,
                     +1 / np.sqrt(baseline_data[cut_index]),
                     -1 / np.sqrt(baseline_data[cut_index]),
                     color="black",
-                    alpha=0.05,
+                    alpha=0.10,
                 )
                 ax.axhline(0, color="black", ls=":")
 
 
-all_axes[2][0].legend(fontsize=8, loc=1)
-all_axes[2][1].legend(fontsize=8, ncol=2, loc=2)
-all_axes[2][3].legend(fontsize=8, ncol=2, loc=2)
+all_axes[2][0].legend(fontsize=8, loc=0, title=legend_titles[0])
+all_axes[2][1].legend(fontsize=8, ncol=2, loc=2, title=legend_titles[1])
+all_axes[2][3].legend(fontsize=8, ncol=2, loc=2, title=legend_titles[3])
 
 for i in range(1):
     all_axes[0][i].text(0.13, 0.4, "Planck", fontsize=10)
@@ -313,6 +319,7 @@ fig_names = [
     "scal_PL_dn_Dz.pdf",
     "scal_bar_dn_Dz.pdf",
 ]
+
 
 for panel_index in range(4):
     fig = plt.figure(figsize=(4, 3.321))

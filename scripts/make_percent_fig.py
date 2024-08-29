@@ -89,9 +89,9 @@ for cut_index in range(3):
 
 
 for i in range(1):
-    all_axes[0].text(0.13, 0.4, "Planck", fontsize=10)
-    all_axes[1].text(0.16, 0.4, "SPT", fontsize=10)
-    all_axes[2].text(0.17, 0.4, "SO", fontsize=10)
+    all_axes[0].text(0.13, 0.43, "Planck", fontsize=10)
+    all_axes[1].text(0.16, 0.43, "SPT", fontsize=10)
+    all_axes[2].text(0.17, 0.43, "SO", fontsize=10)
 
 custom_lines = [
     Line2D([0], [0], color="black", ls=":"),

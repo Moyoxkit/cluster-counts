@@ -49,7 +49,7 @@ def convert_chi2_to_sigma(number_of_chi2, number_of_df):
     # Compute the number of sigma using the normal distribution quantile function
     number_of_sigma = norm.isf(p_value_from_log)
 
-    return number_of_sigma
+    return p_value
 
 
 z = np.linspace(0.0, 2.0, 21)
@@ -94,6 +94,6 @@ for cut_index in range(3):
                     all_labels[panel_index][model_index],
                     " chi2 = ",
                     chis2,
-                    " sigma = ",
+                    " pval = ",
                     convert_chi2_to_sigma(chis2, dof),
                 )

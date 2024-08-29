@@ -59,9 +59,10 @@ class cluster_cosmology_model:
             power_law_args[2],
             log_normal_lognsigy,
         ]
-        self.FLAMINGO_functions.init_other_interpolators(
-            self.astropy_cosmology, power_law_args
-        )
+        if power_law_meds or log_normal_scatter:
+            self.FLAMINGO_functions.init_other_interpolators(
+                self.astropy_cosmology, power_law_args
+            )
 
         self.mira_titan_hmf = MiraTitanHMFemulator.Emulator()
 

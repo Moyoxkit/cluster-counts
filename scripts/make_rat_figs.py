@@ -96,13 +96,13 @@ FLAMINGO_labels = [
     r"fgas$-2\sigma$",
     r"fgas$-4\sigma$",
     r"fgas$-8\sigma$",
-    "Jets",
-    r"Jets fgas$-4\sigma$",
+    "Jet",
+    r"Jet$\_$fgas$-4\sigma$",
     "5p6_DMO",
     "L1_DMO",
     "Tinker (2010)",
     "Bocquet (2016)",
-    "MiraTitanEmulator",
+    "MiraTitanEmulator (Bocquet 2020)",
 ]
 
 FLAMINGO_plots = {name: color for name, color in zip(FLAMINGO_labels, FLAMINGO_colors)}
@@ -136,8 +136,8 @@ fig = plt.figure(figsize=(4, 3.321))
 ax2 = fig.add_subplot(111)
 
 plt.axhline(1, color="black", ls=":")
-plt.axhline(0.9, color="darkgrey", ls=":")
-plt.axhline(1.1, color="darkgrey", ls=":")
+plt.axhline(0.9, color="grey", ls=":")
+plt.axhline(1.1, color="grey", ls=":")
 
 plot2_indices = [9, 10, 11]
 
@@ -152,12 +152,12 @@ for index, cat_loc in enumerate(med_catalogues[plot2_indices]):
 
 N = to_devide_by * 1000**3 * 0.1
 ax2.set_xscale("log")
-ax2.legend(ncol=1, fontsize=8)
+ax2.legend(ncol=1, fontsize=9, fancybox=True, frameon=True)
 ax2.set_ylabel("HMF/5p6_DMO")
-ax2.set_xlabel(r"$M_{\rm 500c}$")
+ax2.set_xlabel(r"$M_{\rm 500c}~[\rm{M}_{\odot}]$")
 ax2.set_ylim(0.5, 1.5)
 ax2.set_xlim(1e13, 5e15)
-plt.axvline(2e14, color="lightgrey", ls=":")
+plt.axvline(2e14, color="grey", ls=":")
 plt.tight_layout()
 plt.savefig("figures/HMF_rats.pdf")
 
@@ -192,15 +192,17 @@ for k in range(7):
     plt.plot(masses, rats[0, :], color=FLAMINGO_colors[k], label=FLAMINGO_labels[k])
 
 
-plt.legend(fontsize=8, ncol=2)
+plt.legend(
+    fontsize=9, ncol=2, title="Baryonic modification", fancybox=True, frameon=True
+)
 plt.ylim(0.6, 1.4)
 plt.axhline(1, color="black", ls=":")
-plt.axhline(0.9, color="darkgrey", ls=":")
-plt.axhline(1.1, color="darkgrey", ls=":")
+plt.axhline(0.9, color="grey", ls=":")
+plt.axhline(1.1, color="grey", ls=":")
 plt.xlim(1e13, 5e15)
 plt.ylabel("HMF/L1_DMO")
-plt.xlabel("M500c")
-plt.axvline(2e14, color="lightgrey", ls=":")
+plt.xlabel(r"$M_{\rm 500c}~[\rm{M}_{\odot}]$")
+plt.axvline(2e14, color="grey", ls=":")
 plt.xscale("log")
 plt.savefig("figures/HMF_bar_rats.pdf")
 
@@ -277,12 +279,12 @@ plt.xscale("log")
 plt.xlim(1e13, 5e15)
 plt.ylim(0.6, 1.4)
 plt.axhline(1, color="black", ls=":")
-plt.xlabel(r"$M_{\rm 500c}$")
+plt.xlabel(r"$M_{\rm 500c}~[\rm{M}_{\odot}]$")
 plt.ylabel(r"$Y_{\rm 500c, PL}/Y_{\rm 500c,L1\_m9}$")
 plt.legend(fontsize=8)
-plt.axhline(0.9, color="darkgrey", ls=":")
-plt.axhline(1.1, color="darkgrey", ls=":")
-plt.axvline(2e14, color="lightgrey", ls=":")
+plt.axhline(0.9, color="grey", ls=":")
+plt.axhline(1.1, color="grey", ls=":")
+plt.axvline(2e14, color="grey", ls=":")
 plt.savefig("figures/scal_PL_rats.pdf")
 
 
@@ -307,10 +309,16 @@ plt.xscale("log")
 plt.xlim(1e13, 5e15)
 plt.ylim(0.6, 1.4)
 plt.axhline(1, color="black", ls=":")
-plt.xlabel(r"$M_{\rm 500c}$")
+plt.xlabel(r"$M_{\rm 500c}~[\rm{M}_{\odot}]$")
 plt.ylabel(r"$Y_{\rm 500c}/Y_{\rm 500c,L1\_m9}$")
-plt.legend(fontsize=8)
-plt.axhline(0.9, color="darkgrey", ls=":")
-plt.axhline(1.1, color="darkgrey", ls=":")
-plt.axvline(2e14, color="lightgrey", ls=":")
+plt.legend(
+    fontsize=9,
+    ncol=2,
+    title="Scaling relation from simulation",
+    fancybox=True,
+    frameon=True,
+)
+plt.axhline(0.9, color="grey", ls=":")
+plt.axhline(1.1, color="grey", ls=":")
+plt.axvline(2e14, color="grey", ls=":")
 plt.savefig("figures/scal_bar_rats.pdf")
